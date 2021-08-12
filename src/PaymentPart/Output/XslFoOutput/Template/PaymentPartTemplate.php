@@ -14,9 +14,12 @@ class PaymentPartTemplate
     </fo:block-container>
 
     <fo:table width="210mm" table-layout="fixed" margin-top="0" border="{{ printable-content }}">
+        <!-- Basic column layout definition -->
+        <!-- Note: column 2 was extended by 3mm to avoid scanning issues of the qr code on the left when paper is inaccurately placed in the printer / scanner. -->
+        <!-- Note: Because of that column 3 was decreased in size by 3mm. -->
         <fo:table-column column-number="1" column-width="62mm" border-right="{{ printable-content }}" />
-        <fo:table-column column-number="2" column-width="56mm" />
-        <fo:table-column column-number="3" column-width="92mm" />
+        <fo:table-column column-number="2" column-width="59mm" /><!-- +3 (was 56mm before). -->
+        <fo:table-column column-number="3" column-width="89mm" /><!-- -3 (was 92mm before). -->
         <fo:table-body>
         
             <!-- 1st row: titles, receipt information, qr-code -->
@@ -60,7 +63,8 @@ class PaymentPartTemplate
                 </fo:table-cell>
                 
                 <!-- 2nd col: payment part (middle) -->
-                <fo:table-cell column-number="2" padding="5mm 0 0 5mm" font-size="10pt">
+                <!-- Note: column 2 was extended by 3mm to avoid scanning issues of the qr code on the left when paper is inaccurately placed in the printer / scanner. -->
+                <fo:table-cell column-number="2" padding="5mm 0 0 8mm" font-size="10pt"><!-- Note: was padding="5mm 0 0 5mm" before -->
                 
                     <fo:block-container height="7mm">
                         <fo:block font-weight="bold" font-size="11pt">
