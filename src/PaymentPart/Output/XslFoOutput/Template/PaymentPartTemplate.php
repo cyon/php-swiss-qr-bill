@@ -7,11 +7,12 @@ class PaymentPartTemplate
     public const TEMPLATE = <<<EOT
 <fo:block-container height="110mm" start-indent="0" end-indent="0" keep-together="always" font-family="Arial,Frutiger,Helvetica,'Liberation Sans'">
     
+    <!-- Disabled since scissors symbol was introduced.
     <fo:block-container height="5mm">
         <fo:block text-align="center" font-size="8pt" {{ hide-in-printable }}>
             {{ text.separate }}
         </fo:block>
-    </fo:block-container>
+    </fo:block-container>-->
 
     <fo:table width="210mm" table-layout="fixed" margin-top="0" border="{{ printable-content }}">
         <!-- Basic column layout definition -->
