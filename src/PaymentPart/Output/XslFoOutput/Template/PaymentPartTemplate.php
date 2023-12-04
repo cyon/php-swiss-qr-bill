@@ -14,7 +14,7 @@ class PaymentPartTemplate
         </fo:block>
     </fo:block-container>-->
 
-    <fo:table width="210mm" table-layout="fixed" margin-top="0" border="{{ printable-content }}">
+    <fo:table width="210mm" table-layout="fixed" margin-top="0" border-top="{{ printable-content }}">
         <!-- Basic column layout definition -->
         <!-- Note: column 2 was extended by 3mm to avoid scanning issues of the qr code on the left when paper is inaccurately placed in the printer / scanner. -->
         <!-- Note: Because of that column 3 was decreased in size by 3mm. -->
