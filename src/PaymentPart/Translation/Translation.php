@@ -1,8 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill\PaymentPart\Translation;
 
-class Translation
+final class Translation
 {
     private const TRANSLATIONS = [
         'de' => [
@@ -22,7 +22,7 @@ class Translation
         ],
 
         'fr' => [
-            'paymentPart' => 'Section de paiement',
+            'paymentPart' => 'Section paiement',
             'creditor' => 'Compte / Payable à',
             'reference' => 'Référence',
             'additionalInformation' => 'Informations supplémentaires',
@@ -38,7 +38,7 @@ class Translation
         ],
 
         'it' => [
-            'paymentPart' => 'Sezione di pagamento',
+            'paymentPart' => 'Sezione pagamento',
             'creditor' => 'Conto / Pagabile a',
             'reference' => 'Riferimento',
             'additionalInformation' => 'Informazioni supplementari',
@@ -70,13 +70,12 @@ class Translation
         ]
     ];
 
-    public static function getAllByLanguage($language): ?array
+    /**
+     * @return array<string, string>|null
+     */
+    public static function getAllByLanguage(string $language): ?array
     {
-        if (! array_key_exists($language, self::TRANSLATIONS)) {
-            return null;
-        }
-
-        return self::TRANSLATIONS[$language];
+        return self::TRANSLATIONS[$language] ?? null;
     }
 
     public static function get(string $key, string $language): ?string

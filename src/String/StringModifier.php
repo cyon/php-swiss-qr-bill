@@ -1,16 +1,30 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill\String;
 
-class StringModifier
+/**
+ * @internal
+ */
+final class StringModifier
 {
-    public static function replaceLineBreaksWithString(?string $string): string
+    public static function replaceLineBreaksAndTabsWithSpaces(?string $string): string
     {
-        return str_replace(array("\r", "\n"), ' ', $string);
+        return is_null($string)
+            ? ''
+            : str_replace(["\r", "\n", "\t"], ' ', $string);
     }
 
     public static function replaceMultipleSpacesWithOne(?string $string): string
     {
-        return preg_replace('/ +/', ' ', $string);
+        return is_null($string)
+            ? ''
+            :  preg_replace('/ +/', ' ', $string);
+    }
+
+    public static function stripWhitespace(?string $string): string
+    {
+        return is_null($string)
+            ? ''
+            : preg_replace('/\s+/', '', $string);
     }
 }

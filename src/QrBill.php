@@ -1,8 +1,7 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill;
 
-use Endroid\QrCode\ErrorCorrectionLevel;
 use Sprain\SwissQrBill\Constraint\ValidCreditorInformationPaymentReferenceCombination;
 use Sprain\SwissQrBill\DataGroup\AddressInterface;
 use Sprain\SwissQrBill\DataGroup\Element\AdditionalInformation;
@@ -11,7 +10,9 @@ use Sprain\SwissQrBill\DataGroup\Element\CreditorInformation;
 use Sprain\SwissQrBill\DataGroup\Element\Header;
 use Sprain\SwissQrBill\DataGroup\Element\PaymentAmountInformation;
 use Sprain\SwissQrBill\DataGroup\Element\PaymentReference;
-use Sprain\SwissQrBill\DataGroup\Element\StructuredAddress;
+use Sprain\SwissQrBill\DataGroup\EmptyElement\EmptyAdditionalInformation;
+use Sprain\SwissQrBill\DataGroup\EmptyElement\EmptyAddress;
+use Sprain\SwissQrBill\DataGroup\EmptyElement\EmptyLine;
 use Sprain\SwissQrBill\DataGroup\QrCodeableInterface;
 use Sprain\SwissQrBill\Exception\InvalidQrBillDataException;
 use Sprain\SwissQrBill\QrCode\QrCode;
@@ -21,45 +22,28 @@ use Sprain\SwissQrBill\Validator\SelfValidatableTrait;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Mapping\ClassMetadata;
 
-class QrBill implements SelfValidatableInterface
+final class QrBill implements SelfValidatableInterface
 {
     use SelfValidatableTrait;
 
-    const ERROR_CORRECTION_LEVEL_HIGH = ErrorCorrectionLevel::HIGH;
-    const ERROR_CORRECTION_LEVEL_MEDIUM = ErrorCorrectionLevel::MEDIUM;
-    const ERROR_CORRECTION_LEVEL_LOW = ErrorCorrectionLevel::LOW;
+    private Header $header;
+    private ?CreditorInformation $creditorInformation = null;
+    private ?AddressInterface $creditor = null;
+    private ?PaymentAmountInformation $paymentAmountInformation = null;
+    private ?AddressInterface $ultimateDebtor = null;
+    private ?PaymentReference $paymentReference = null;
+    private ?AdditionalInformation $additionalInformation = null;
 
-    private const SWISS_CROSS_LOGO_FILE = __DIR__ . '/../assets/swiss-cross.optimized.png';
-
-    private const PX_QR_CODE = 543;    // recommended 46x46 mm in px @ 300dpi – in pixel based outputs, the final image size may be slightly different, depending on the qr code contents
-    private const PX_SWISS_CROSS = 83; // recommended 7x7 mm in px @ 300dpi
-
-    /** @var Header */
-    private $header;
-
-    /** @var CreditorInformation */
-    private $creditorInformation;
-
-    /** @var AddressInterface*/
-    private $creditor;
-
-    /** @var PaymentAmountInformation */
-    private $paymentAmountInformation;
-
-    /** @var AddressInterface*/
-    private $ultimateDebtor;
-
-    /** @var PaymentReference */
-    private $paymentReference;
-
-    /** @var AdditionalInformation */
-    private $additionalInformation;
+    /** @var array<string, string> */
+    private array $unsupportedCharacterReplacements = [];
 
     /** @var AlternativeScheme[] */
-    private $alternativeSchemes = [];
+    private array $alternativeSchemes = [];
 
-    /** @var string  */
-    private $errorCorrectionLevel = self::ERROR_CORRECTION_LEVEL_MEDIUM;
+    private function __construct(Header $header)
+    {
+        $this->header = $header;
+    }
 
     public static function create(): self
     {
@@ -69,13 +53,10 @@ class QrBill implements SelfValidatableInterface
             Header::CODING_LATIN
         );
 
-        $qrBill = new self();
-        $qrBill->header = $header;
-
-        return $qrBill;
+        return new self($header);
     }
 
-    public function getHeader(): ?Header
+    public function getHeader(): Header
     {
         return $this->header;
     }
@@ -159,11 +140,17 @@ class QrBill implements SelfValidatableInterface
         return $this;
     }
 
+    /**
+     * @return list<AlternativeScheme>
+     */
     public function getAlternativeSchemes(): array
     {
         return $this->alternativeSchemes;
     }
 
+    /**
+     * @param list<AlternativeScheme> $alternativeSchemes
+     */
     public function setAlternativeSchemes(array $alternativeSchemes): self
     {
         $this->alternativeSchemes = $alternativeSchemes;
@@ -179,16 +166,17 @@ class QrBill implements SelfValidatableInterface
     }
 
     /**
-     * @deprecated Will be removed in v3. The specs require the error correction level to be fixed at medium.
+     * @param array<string, string> $unsupportedCharacterReplacements
+     * @return $this
      */
-    public function setErrorCorrectionLevel(string $errorCorrectionLevel): self
+    public function setUnsupportedCharacterReplacements(array $unsupportedCharacterReplacements): self
     {
-        $this->errorCorrectionLevel = $errorCorrectionLevel;
+        $this->unsupportedCharacterReplacements = $unsupportedCharacterReplacements;
 
         return $this;
     }
 
-    public function getQrCode(): QrCode
+    public function getQrCode(?string $fileFormat = null): QrCode
     {
         if (!$this->isValid()) {
             throw new InvalidQrBillDataException(
@@ -196,17 +184,11 @@ class QrBill implements SelfValidatableInterface
             );
         }
 
-        $qrCode = new QrCode();
-        $qrCode->setText($this->getQrCodeContent());
-        $qrCode->setSize(self::PX_QR_CODE);
-        $qrCode->setLogoHeight(self::PX_SWISS_CROSS);
-        $qrCode->setLogoWidth(self::PX_SWISS_CROSS);
-        $qrCode->setLogoPath(self::SWISS_CROSS_LOGO_FILE);
-        $qrCode->setRoundBlockSize(true, \Endroid\QrCode\QrCode::ROUND_BLOCK_SIZE_MODE_ENLARGE);
-        $qrCode->setMargin(0);
-        $qrCode->setErrorCorrectionLevel(new ErrorCorrectionLevel($this->errorCorrectionLevel));
-
-        return $qrCode;
+        return QrCode::create(
+            $this->getQrCodeContent(),
+            $fileFormat,
+            $this->unsupportedCharacterReplacements
+        );
     }
 
     private function getQrCodeContent(): string
@@ -215,11 +197,12 @@ class QrBill implements SelfValidatableInterface
             $this->getHeader(),
             $this->getCreditorInformation(),
             $this->getCreditor(),
-            new StructuredAddress(), # Placeholder for ultimateCreditor, which is currently not yet allowed to be used by the implementation guidelines
+            new EmptyAddress(), # Placeholder for ultimateCreditor, which is currently not yet allowed to be used by the implementation guidelines
             $this->getPaymentAmountInformation(),
-            $this->getUltimateDebtor() ?: new StructuredAddress(),
+            $this->getUltimateDebtor() ?: new EmptyAddress(),
             $this->getPaymentReference(),
-            $this->getAdditionalInformation() ?: new AdditionalInformation(),
+            $this->getAdditionalInformation() ?: new EmptyAdditionalInformation(),
+            $this->getPossibleEmptyLine(),
             $this->getAlternativeSchemes()
         ];
 
@@ -228,22 +211,41 @@ class QrBill implements SelfValidatableInterface
         return implode("\n", $qrCodeStringElements);
     }
 
+    private function getPossibleEmptyLine(): ?EmptyLine
+    {
+        if ($this->getAlternativeSchemes()) {
+            if (null === $this->getAdditionalInformation()?->getBillInformation()) {
+                return new EmptyLine();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<QrCodeableInterface|AddressInterface|list<AddressInterface|QrCodeableInterface>> $elements
+     * @return list<string|int|null>
+     */
     private function extractQrCodeDataFromElements(array $elements): array
     {
         $qrCodeElements = [];
 
         foreach ($elements as $element) {
             if ($element instanceof QrCodeableInterface) {
-                $qrCodeElements = array_merge($qrCodeElements, $element->getQrCodeData());
+                $qrCodeElements[] = $element->getQrCodeData();
             } elseif (is_array($element)) {
-                $qrCodeElements = array_merge($qrCodeElements, $this->extractQrCodeDataFromElements($element));
+                $qrCodeElements[] = $this->extractQrCodeDataFromElements($element);
             }
         }
 
-        array_walk($qrCodeElements, function (&$string) {
-            $string = StringModifier::replaceLineBreaksWithString($string);
-            $string = StringModifier::replaceMultipleSpacesWithOne($string);
-            $string = trim($string);
+        $qrCodeElements = array_merge(... $qrCodeElements);
+
+        array_walk($qrCodeElements, static function (&$string) {
+            if (is_string($string)) {
+                $string = StringModifier::replaceLineBreaksAndTabsWithSpaces($string);
+                $string = StringModifier::replaceMultipleSpacesWithOne($string);
+                $string = trim($string);
+            }
         });
 
         return $qrCodeElements;

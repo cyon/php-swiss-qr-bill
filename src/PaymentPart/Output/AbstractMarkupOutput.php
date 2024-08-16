@@ -1,10 +1,11 @@
-<?php
-
+<?php declare(strict_types=1);
 namespace Sprain\SwissQrBill\PaymentPart\Output;
 
 use Sprain\SwissQrBill\PaymentPart\Output\Element\Placeholder;
 use Sprain\SwissQrBill\PaymentPart\Output\Element\Text;
 use Sprain\SwissQrBill\PaymentPart\Output\Element\Title;
+use Sprain\SwissQrBill\PaymentPart\Output\AbstractOutput;
+use Sprain\SwissQrBill\PaymentPart\Output\Element\FurtherInformation;
 use Sprain\SwissQrBill\PaymentPart\Translation\Translation;
 
 abstract class AbstractMarkupOutput extends AbstractOutput implements OutputInterface
@@ -18,6 +19,7 @@ abstract class AbstractMarkupOutput extends AbstractOutput implements OutputInte
     abstract public function getHideInPrintableTemplate(): string;
 
     abstract public function getTextElementTemplate(): string;
+    abstract public function getFurtherInformationElementTemplate(): string;
 
     abstract public function getTitleElementTemplate(): string;
 
@@ -29,19 +31,21 @@ abstract class AbstractMarkupOutput extends AbstractOutput implements OutputInte
     {
         $paymentPart = $this->getPaymentPartTemplate();
 
+        // Luba was here
+        $paymentPart = $this->addCurrencyContentReceipt($paymentPart);
+        $paymentPart = $this->addSeparatorContentIfNotPrintable($paymentPart);
+        $paymentPart = $this->hideInPrintable($paymentPart);
+
         $paymentPart = $this->addSwissQrCodeImage($paymentPart);
         $paymentPart = $this->addInformationContent($paymentPart);
         $paymentPart = $this->addInformationContentReceipt($paymentPart);
         $paymentPart = $this->addCurrencyContent($paymentPart);
-        $paymentPart = $this->addCurrencyContentReceipt($paymentPart);
         $paymentPart = $this->addAmountContent($paymentPart);
         $paymentPart = $this->addAmountContentReceipt($paymentPart);
         $paymentPart = $this->addFurtherInformationContent($paymentPart);
-        $paymentPart = $this->addSeparatorContentIfNotPrintable($paymentPart);
-        $paymentPart = $this->hideInPrintable($paymentPart);
+//        $paymentPart = $this->hideSeparatorContentIfPrintable($paymentPart);
 
         $paymentPart = $this->translateContents($paymentPart, $this->getLanguage());
-
         return $paymentPart;
     }
 
@@ -145,6 +149,82 @@ abstract class AbstractMarkupOutput extends AbstractOutput implements OutputInte
         return $paymentPart;
     }
 
+    /**
+     * @param Title|Text|Placeholder $element Instance of OutputElementInterface.
+     * @param bool $isReceiptPart
+     * @return string
+     */
+    private function getContentElement(FurtherInformation|Title|Text|Placeholder $element, bool $isReceiptPart = false): string
+    {
+        return match ($element::class) {
+            FurtherInformation::class => $this->getFurtherInformationElement($element),
+            Title::class => $this->getTitleElement($element, $isReceiptPart),
+            Text::class => $this->getTextElement($element),
+            Placeholder::class => $this->getPlaceholderElement($element)
+        };
+    }
+
+    private function getTitleElement(Title $element, $isReceiptPart = false): string
+    {
+        $elementTemplate = $this->getTitleElementTemplate();
+        if (true === $isReceiptPart) {
+            $elementTemplate = $this->getTitleElementReceiptTemplate();
+        }
+        $elementString = str_replace('{{ title }}', $element->getTitle(), $elementTemplate);
+        return $elementString;
+
+
+
+    }
+
+    private function getTextElement(Text $element): string
+    {
+        $elementTemplate = $this->getTextElementTemplate();
+        $elementTextString = str_replace(array("\r\n", "\r", "\n"), $this->getNewlineElementTemplate(), $element->getText());
+        $elementString = str_replace('{{ text }}', $elementTextString, $elementTemplate);
+
+        return $elementString;
+    }
+
+    private function getFurtherInformationElement(FurtherInformation $element): string
+    {
+        $elementTemplate = $this->getFurtherInformationElementTemplate();
+        $elementTextString = str_replace(array("\r\n", "\r", "\n"), $this->getNewlineElementTemplate(), $element->getText());
+        $elementString = str_replace('{{ text }}', $elementTextString, $elementTemplate);
+
+        return $elementString;
+    }
+
+    private function getPlaceholderElement(Placeholder $element): string
+    {
+        $elementTemplate = $this->getPlaceholderElementTemplate();
+        $elementString = $elementTemplate;
+
+        $svgDoc = new \DOMDocument();
+        $svgDoc->loadXML(file_get_contents($element->getFile())); // @phpstan-ignore argument.type (the loaded file is under our control)
+        $svg = $svgDoc->getElementsByTagName('svg');
+        $dataUri = 'data:image/svg+xml;base64,' . base64_encode($svg->item(0)->C14N());
+
+        $elementString = str_replace('{{ file }}', $dataUri, $elementString);
+        $elementString = str_replace('{{ width }}', (string) $element->getWidth(), $elementString);
+        $elementString = str_replace('{{ height }}', (string) $element->getHeight(), $elementString);
+        $elementString = str_replace('{{ id }}', $element->getType(), $elementString);
+        $elementString = str_replace('{{ placeholder-float }}', $element->getFloat(), $elementString);
+        $elementString = str_replace('{{ placeholder-margin-top }}', (string) $element->getMarginTop(), $elementString);
+
+        return $elementString;
+    }
+
+    private function translateContents(string $paymentPart, string $language): string
+    {
+        $translations = Translation::getAllByLanguage($language);
+        foreach ($translations as $key => $text) {
+            $paymentPart = str_replace('{{ text.' . $key . ' }}', $text, $paymentPart);
+        }
+
+        return $paymentPart;
+    }
+
     private function addSeparatorContentIfNotPrintable(string $paymentPart): string
     {
         $printableBorders = '';
@@ -169,58 +249,4 @@ abstract class AbstractMarkupOutput extends AbstractOutput implements OutputInte
         return $paymentPart;
     }
 
-    /**
-     * @param Title|Text|Placeholder $element Instance of OutputElementInterface.
-     * @param bool $isReceiptPart
-     * @return string
-     */
-    private function getContentElement($element, bool $isReceiptPart = false): string
-    {
-        if ($element instanceof Title) {
-            $elementTemplate = $this->getTitleElementTemplate();
-            if (true === $isReceiptPart) {
-                $elementTemplate = $this->getTitleElementReceiptTemplate();
-            }
-            $elementString = str_replace('{{ title }}', $element->getTitle(), $elementTemplate);
-
-            return $elementString;
-        }
-
-        if ($element instanceof Text) {
-            $elementTemplate = $this->getTextElementTemplate();
-            $elementTextString = str_replace(array("\r\n", "\r", "\n"), $this->getNewlineElementTemplate(), $element->getText());
-            $elementString = str_replace('{{ text }}', $elementTextString, $elementTemplate);
-
-            return $elementString;
-        }
-
-        if ($element instanceof Placeholder) {
-            $elementTemplate = $this->getPlaceholderElementTemplate();
-            $elementString = $elementTemplate;
-
-            $svgDoc = new \DOMDocument();
-            $svgDoc->loadXML(file_get_contents($element->getFile(Placeholder::FILE_TYPE_SVG)));
-            $svg = $svgDoc->getElementsByTagName('svg');
-            $dataUri = 'data:image/svg+xml;base64,' . base64_encode($svg->item(0)->C14N());
-
-            $elementString = str_replace('{{ placeholder-file }}', $dataUri, $elementString);
-            $elementString = str_replace('{{ placeholder-width }}', (string) $element->getWidth(), $elementString);
-            $elementString = str_replace('{{ placeholder-height }}', (string) $element->getHeight(), $elementString);
-            $elementString = str_replace('{{ placeholder-id }}', $element->getType(), $elementString);
-            $elementString = str_replace('{{ placeholder-float }}', $element->getFloat(), $elementString);
-            $elementString = str_replace('{{ placeholder-margin-top }}', (string) $element->getMarginTop(), $elementString);
-
-            return $elementString;
-        }
-    }
-
-    private function translateContents(string $paymentPart, string $language): string
-    {
-        $translations = Translation::getAllByLanguage($language);
-        foreach ($translations as $key => $text) {
-            $paymentPart = str_replace('{{ text.' . $key . ' }}', $text, $paymentPart);
-        }
-
-        return $paymentPart;
-    }
 }

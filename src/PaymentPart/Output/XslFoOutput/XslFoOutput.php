@@ -3,6 +3,7 @@
 namespace Sprain\SwissQrBill\PaymentPart\Output\XslFoOutput;
 
 use Sprain\SwissQrBill\PaymentPart\Output\AbstractMarkupOutput;
+use Sprain\SwissQrBill\PaymentPart\Output\XslFoOutput\Template\FurtherInformationElementTemplate;
 use Sprain\SwissQrBill\PaymentPart\Output\XslFoOutput\Template\HideInPrintableTemplate;
 use Sprain\SwissQrBill\PaymentPart\Output\XslFoOutput\Template\PlaceholderElementTemplate;
 use Sprain\SwissQrBill\PaymentPart\Output\XslFoOutput\Template\PrintableBordersTemplate;
@@ -37,6 +38,11 @@ final class XslFoOutput extends AbstractMarkupOutput
     public function getTextElementTemplate(): string
     {
         return TextElementTemplate::TEMPLATE;
+    }
+
+    public function getFurtherInformationElementTemplate(): string
+    {
+        return FurtherInformationElementTemplate::TEMPLATE;
     }
 
     public function getTitleElementTemplate(): string

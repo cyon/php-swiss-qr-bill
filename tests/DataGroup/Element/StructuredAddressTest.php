@@ -1,16 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\Tests\SwissQrBill\DataGroup\Element;
 
 use PHPUnit\Framework\TestCase;
 use Sprain\SwissQrBill\DataGroup\Element\StructuredAddress;
 
-class StructuredAddressTest extends TestCase
+final class StructuredAddressTest extends TestCase
 {
     /**
      * @dataProvider nameProvider
      */
-    public function testName($numberOfValidations, $value)
+    public function testName($numberOfValidations, $value): void
     {
         $address = StructuredAddress::createWithoutStreet(
             $value,
@@ -22,7 +22,7 @@ class StructuredAddressTest extends TestCase
         $this->assertSame($numberOfValidations, $address->getViolations()->count());
     }
 
-    public function nameProvider()
+    public function nameProvider(): array
     {
         return [
             [0, 'A'],
@@ -38,7 +38,7 @@ class StructuredAddressTest extends TestCase
     /**
      * @dataProvider streetProvider
      */
-    public function testStreet($numberOfViolations, $value)
+    public function testStreet(int $numberOfViolations, string $value): void
     {
         $address = StructuredAddress::createWithStreet(
             'Thomas Mustermann',
@@ -52,7 +52,7 @@ class StructuredAddressTest extends TestCase
         $this->assertSame($numberOfViolations, $address->getViolations()->count());
     }
 
-    public function streetProvider()
+    public function streetProvider(): array
     {
         return [
             [0, ''],
@@ -67,7 +67,7 @@ class StructuredAddressTest extends TestCase
     /**
      * @dataProvider buildingNumberProvider
      */
-    public function testBuildingNumber($numberOfViolations, $value)
+    public function testBuildingNumber(int $numberOfViolations, ?string $value): void
     {
         $address = StructuredAddress::createWithStreet(
             'Thomas Mustermann',
@@ -81,7 +81,7 @@ class StructuredAddressTest extends TestCase
         $this->assertSame($numberOfViolations, $address->getViolations()->count());
     }
 
-    public function buildingNumberProvider()
+    public function buildingNumberProvider(): array
     {
         return [
             [0, null],
@@ -97,7 +97,7 @@ class StructuredAddressTest extends TestCase
     /**
      * @dataProvider postalCodeProvider
      */
-    public function testPostalCode($numberOfViolations, $value)
+    public function testPostalCode(int $numberOfViolations, string $value): void
     {
         $address = StructuredAddress::createWithStreet(
             'Thomas Mustermann',
@@ -111,7 +111,7 @@ class StructuredAddressTest extends TestCase
         $this->assertSame($numberOfViolations, $address->getViolations()->count());
     }
 
-    public function postalCodeProvider()
+    public function postalCodeProvider(): array
     {
         return [
             [0, '1'],
@@ -126,7 +126,7 @@ class StructuredAddressTest extends TestCase
     /**
      * @dataProvider cityProvider
      */
-    public function testCity($numberOfViolations, $value)
+    public function testCity(int $numberOfViolations, string $value)
     {
         $address = StructuredAddress::createWithStreet(
             'Thomas Mustermann',
@@ -140,7 +140,7 @@ class StructuredAddressTest extends TestCase
         $this->assertSame($numberOfViolations, $address->getViolations()->count());
     }
 
-    public function cityProvider()
+    public function cityProvider(): array
     {
         return [
             [0, 'A'],
@@ -154,7 +154,7 @@ class StructuredAddressTest extends TestCase
     /**
      * @dataProvider countryProvider
      */
-    public function testCountry($numberOfValidations, $value)
+    public function testCountry($numberOfValidations, $value): void
     {
         $address = StructuredAddress::createWithoutStreet(
             'Thomas Mustermann',
@@ -166,7 +166,7 @@ class StructuredAddressTest extends TestCase
         $this->assertSame($numberOfValidations, $address->getViolations()->count());
     }
 
-    public function countryProvider()
+    public function countryProvider(): array
     {
         return [
             [0, 'CH'],
@@ -208,16 +208,16 @@ class StructuredAddressTest extends TestCase
     /**
      * @dataProvider addressProvider
      */
-    public function testFullAddressString(StructuredAddress $address, $expected)
+    public function testFullAddressString(StructuredAddress $address, $expected): void
     {
         $this->assertSame($expected, $address->getFullAddress());
     }
 
-    public function addressProvider()
+    public function addressProvider(): array
     {
         return [
             [
-                $address = StructuredAddress::createWithStreet(
+                StructuredAddress::createWithStreet(
                     'Thomas Mustermann',
                     'Musterweg',
                     '22a',
@@ -228,7 +228,7 @@ class StructuredAddressTest extends TestCase
                 "Thomas Mustermann\nMusterweg 22a\n1000 Lausanne"
             ],
             [
-                $address = StructuredAddress::createWithStreet(
+                StructuredAddress::createWithStreet(
                     'Thomas Mustermann',
                     'Musterweg',
                     null,
@@ -239,7 +239,7 @@ class StructuredAddressTest extends TestCase
                 "Thomas Mustermann\nMusterweg\n1000 Lausanne"
             ],
             [
-                $address = StructuredAddress::createWithoutStreet(
+                StructuredAddress::createWithoutStreet(
                     'Thomas Mustermann',
                     '1000',
                     'Lausanne',
@@ -248,16 +248,16 @@ class StructuredAddressTest extends TestCase
                 "Thomas Mustermann\n1000 Lausanne"
             ],
             [
-                $address = StructuredAddress::createWithoutStreet(
+                StructuredAddress::createWithoutStreet(
                     'Thomas Mustermann',
                     '9490',
                     'Vaduz',
-                    'FL'
+                    'LI'
                 ),
-                "Thomas Mustermann\n9490 Vaduz"
+                "Thomas Mustermann\nLI-9490 Vaduz"
             ],
             [
-                $address = StructuredAddress::createWithoutStreet(
+                StructuredAddress::createWithoutStreet(
                     'Thomas Mustermann',
                     '80331',
                     'München',
@@ -265,7 +265,136 @@ class StructuredAddressTest extends TestCase
                 ),
                 "Thomas Mustermann\nDE-80331 München"
             ],
+            [
+                StructuredAddress::createWithStreet(
+                    "Thomas\nMustermann",
+                    "Musterweg\t\ram\rRhein",
+                    '12',
+                    '80331',
+                    'München',
+                    ' DE '
+                ),
+                "Thomas Mustermann\nMusterweg am Rhein 12\nDE-80331 München"
+            ],
+            [
+                StructuredAddress::createWithStreet(
+                    'Heaps of Characters International Trading Company of Switzerland GmbH',
+                    'Street of the Mighty Long Names Where Heroes Live and Villans Die',
+                    '75',
+                    '1000',
+                    'Lausanne au bord du lac, où le soleil brille encore la nuit',
+                    'CH'
+                ),
+                "Heaps of Characters International Trading Company of Switzerland GmbH\nStreet of the Mighty Long Names Where Heroes Live and Villans Die 75\n1000 Lausanne au bord du lac, où le soleil brille encore la nuit"
+            ],
+            [
+                StructuredAddress::createWithStreet(
+                    'Heaps of Characters International Trading Company of Switzerland GmbH',
+                    'Rue examplaire',
+                    '22a',
+                    '1000',
+                    'Lausanne',
+                    'CH'
+                ),
+                "Heaps of Characters International Trading Company of Switzerland GmbH\nRue examplaire 22a\n1000 Lausanne"
+            ],
 
+        ];
+    }
+
+    /**
+     * @dataProvider addressProviderReceipt
+     */
+    public function testFullAddressStringForReceipt(StructuredAddress $address, $expected): void
+    {
+        $this->assertSame($expected, $address->getFullAddress(true));
+    }
+
+    public function addressProviderReceipt(): array
+    {
+        return [
+            [
+                StructuredAddress::createWithStreet(
+                    'Thomas Mustermann',
+                    'Musterweg',
+                    '22a',
+                    '1000',
+                    'Lausanne',
+                    'CH'
+                ),
+                "Thomas Mustermann\nMusterweg 22a\n1000 Lausanne"
+            ],
+            [
+                StructuredAddress::createWithStreet(
+                    'Thomas Mustermann',
+                    'Musterweg',
+                    null,
+                    '1000',
+                    'Lausanne',
+                    'CH'
+                ),
+                "Thomas Mustermann\nMusterweg\n1000 Lausanne"
+            ],
+            [
+                StructuredAddress::createWithoutStreet(
+                    'Thomas Mustermann',
+                    '1000',
+                    'Lausanne',
+                    'CH'
+                ),
+                "Thomas Mustermann\n1000 Lausanne"
+            ],
+            [
+                StructuredAddress::createWithoutStreet(
+                    'Thomas Mustermann',
+                    '9490',
+                    'Vaduz',
+                    'LI'
+                ),
+                "Thomas Mustermann\nLI-9490 Vaduz"
+            ],
+            [
+                StructuredAddress::createWithoutStreet(
+                    'Thomas Mustermann',
+                    '80331',
+                    'München',
+                    'DE'
+                ),
+                "Thomas Mustermann\nDE-80331 München"
+            ],
+            [
+                StructuredAddress::createWithStreet(
+                    "Thomas\nMustermann",
+                    "Musterweg\t\ram\rRhein",
+                    '12',
+                    '80331',
+                    'München',
+                    ' DE '
+                ),
+                "Thomas Mustermann\nMusterweg am Rhein 12\nDE-80331 München"
+            ],
+            [
+                StructuredAddress::createWithStreet(
+                    'Heaps of Characters International Trading Company of Switzerland GmbH',
+                    'Street of the Mighty Long Names Where Heroes Live and Villans Die',
+                    '75',
+                    '1000',
+                    'Lausanne au bord du lac, où le soleil brille encore la nuit',
+                    'CH'
+                ),
+                "Heaps of Characters International Trading Company of Switzerland GmbH"
+            ],
+            [
+                StructuredAddress::createWithStreet(
+                    'Heaps of Characters International Trading Company of Switzerland GmbH',
+                    'Rue examplaire',
+                    '22a',
+                    '1000',
+                    'Lausanne',
+                    'CH'
+                ),
+                "Heaps of Characters International Trading Company of Switzerland GmbH\n1000 Lausanne"
+            ],
         ];
     }
 }

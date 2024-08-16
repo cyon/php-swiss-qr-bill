@@ -1,7 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill\Reference;
 
+use Sprain\SwissQrBill\String\StringModifier;
 use Sprain\SwissQrBill\Validator\Exception\InvalidQrPaymentReferenceException;
 use Sprain\SwissQrBill\Validator\SelfValidatableInterface;
 use Sprain\SwissQrBill\Validator\SelfValidatableTrait;
@@ -9,26 +10,26 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Symfony\Component\Validator\Mapping\ClassMetadata;
 
-class QrPaymentReferenceGenerator implements SelfValidatableInterface
+final class QrPaymentReferenceGenerator implements SelfValidatableInterface
 {
     use SelfValidatableTrait;
 
-    /** @var string */
-    private $customerIdentificationNumber;
-
-    /** @var string */
-    private $referenceNumber;
+    private ?string $customerIdentificationNumber = null;
+    private string $referenceNumber;
 
     public static function generate(?string $customerIdentificationNumber, string $referenceNumber): string
     {
-        $qrPaymentReferenceGenerator = new self();
-
-        if (null !== $customerIdentificationNumber) {
-            $qrPaymentReferenceGenerator->customerIdentificationNumber = $qrPaymentReferenceGenerator->removeWhitespace($customerIdentificationNumber);
-        }
-        $qrPaymentReferenceGenerator->referenceNumber = $qrPaymentReferenceGenerator->removeWhitespace($referenceNumber);
+        $qrPaymentReferenceGenerator = new self($customerIdentificationNumber, $referenceNumber);
 
         return $qrPaymentReferenceGenerator->doGenerate();
+    }
+
+    public function __construct(?string $customerIdentificationNumber, string $referenceNumber)
+    {
+        if (null !== $customerIdentificationNumber) {
+            $this->customerIdentificationNumber = StringModifier::stripWhitespace($customerIdentificationNumber);
+        }
+        $this->referenceNumber = StringModifier::stripWhitespace($referenceNumber);
     }
 
     public function getCustomerIdentificationNumber(): ?string
@@ -41,16 +42,18 @@ class QrPaymentReferenceGenerator implements SelfValidatableInterface
         return $this->referenceNumber;
     }
 
-    private function doGenerate(): string
+    public function doGenerate(): string
     {
         if (!$this->isValid()) {
             throw new InvalidQrPaymentReferenceException(
-                'The provided data is not valid to generate a qr payment reference number. Use getViolations() to find details.'
+                'The provided data is not valid to generate a qr payment reference number.'
             );
         }
 
         $completeReferenceNumber  = $this->getCustomerIdentificationNumber();
-        $completeReferenceNumber .= str_pad($this->getReferenceNumber(), 26 - strlen($completeReferenceNumber), '0', STR_PAD_LEFT);
+
+        $strlen = $completeReferenceNumber ? strlen($completeReferenceNumber) : 0;
+        $completeReferenceNumber .= str_pad($this->getReferenceNumber(), 26 - $strlen, '0', STR_PAD_LEFT);
         $completeReferenceNumber .= $this->modulo10($completeReferenceNumber);
 
         return $completeReferenceNumber;
@@ -83,23 +86,21 @@ class QrPaymentReferenceGenerator implements SelfValidatableInterface
 
     public function validateFullReference(ExecutionContextInterface $context): void
     {
-        if (strlen($this->customerIdentificationNumber) + strlen($this->referenceNumber) > 26) {
+        $strlenCustomerIdentificationNumber = $this->customerIdentificationNumber ? strlen($this->customerIdentificationNumber) : 0;
+
+        if ($strlenCustomerIdentificationNumber + strlen($this->referenceNumber) > 26) {
             $context->buildViolation('The length of customer identification number + reference number may not exceed 26 characters in total.')
                 ->addViolation();
         }
     }
 
-    private function removeWhitespace(string $string): string
-    {
-        return preg_replace('/\s+/', '', $string);
-    }
-
     private function modulo10(string $number): int
     {
-        $table = array(0, 9, 4, 6, 8, 2, 7, 1, 3, 5);
+        $table = [0, 9, 4, 6, 8, 2, 7, 1, 3, 5];
         $next = 0;
-        for ($i = 0; $i < strlen($number); $i++) {
-            $next =  $table[($next + intval(substr($number, $i, 1))) % 10];
+        $strlen = strlen($number);
+        for ($i = 0; $i < $strlen; $i++) {
+            $next =  $table[($next + (int)$number[$i]) % 10];
         }
 
         return (10 - $next) % 10;

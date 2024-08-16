@@ -1,8 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill\PaymentPart\Output\Element;
 
-class Placeholder implements OutputElementInterface
+/**
+ * @internal
+ */
+final class Placeholder implements OutputElementInterface
 {
     public const FILE_TYPE_SVG = 'svg';
     public const FILE_TYPE_PNG = 'png';
@@ -47,20 +50,11 @@ class Placeholder implements OutputElementInterface
         'marginTop' => -3.175 // In mm.
     ];
 
-    /** @var string */
-    private $type;
-
-    /** @var string */
-    private $fileSvg;
-
-    /** @var string */
-    private $filePng;
-
-    /** @var int */
-    private $width;
-
-    /** @var int */
-    private $height;
+    private string $type;
+    private string $fileSvg;
+    private string $filePng;
+    private int $width;
+    private int $height;
 
     /** @var string */
     private $float;
@@ -87,15 +81,12 @@ class Placeholder implements OutputElementInterface
         return $this->type;
     }
 
-    public function getFile($type = self::FILE_TYPE_SVG): string
+    public function getFile(string $type = self::FILE_TYPE_SVG): string
     {
-        switch ($type) {
-            case self::FILE_TYPE_PNG:
-                return $this->filePng;
-            case self::FILE_TYPE_SVG:
-            default:
-                return $this->fileSvg;
-        }
+        return match ($type) {
+            self::FILE_TYPE_PNG => $this->filePng,
+            default => $this->fileSvg,
+        };
     }
 
     public function getWidth(): ?int

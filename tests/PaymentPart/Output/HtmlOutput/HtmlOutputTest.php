@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\Tests\SwissQrBill\PaymentPart\Output\HtmlOutput;
 
@@ -6,11 +6,13 @@ use PHPUnit\Framework\TestCase;
 use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\HtmlOutput;
 use Sprain\SwissQrBill\QrBill;
 use Sprain\SwissQrBill\QrCode\QrCode;
+use Sprain\Tests\SwissQrBill\TestCompactSvgQrCodeTrait;
 use Sprain\Tests\SwissQrBill\TestQrBillCreatorTrait;
 
-class HtmlOutputTest extends TestCase
+final class HtmlOutputTest extends TestCase
 {
     use TestQrBillCreatorTrait;
+    use TestCompactSvgQrCodeTrait;
 
     /**
      * @dataProvider validQrBillsProvider
@@ -21,13 +23,14 @@ class HtmlOutputTest extends TestCase
             [
                 'printable' => false,
                 'format' => QrCode::FILE_FORMAT_SVG,
-                'file' => __DIR__ . '/../../../TestData/HtmlOutput/' . $name . '.svg.html'
+                'file' => __DIR__ . '/../../../TestData/HtmlOutput/' . $name . $this->getCompact() . '.svg.html'
             ],
             [
                 'printable' => true,
                 'format' => QrCode::FILE_FORMAT_SVG,
-                'file' => __DIR__ . '/../../../TestData/HtmlOutput/' . $name . '.svg.print.html'
+                'file' => __DIR__ . '/../../../TestData/HtmlOutput/' . $name . $this->getCompact() . '.svg.print.html'
             ],
+            /* PNGs do not create the same output in all environments
             [
                 'printable' => false,
                 'format' => QrCode::FILE_FORMAT_PNG,
@@ -38,6 +41,7 @@ class HtmlOutputTest extends TestCase
                 'format' => QrCode::FILE_FORMAT_PNG,
                 'file' => __DIR__ . '/../../../TestData/HtmlOutput/' . $name . '.png.print.html'
             ]
+            */
         ];
 
         foreach ($variations as $variation) {
@@ -50,7 +54,7 @@ class HtmlOutputTest extends TestCase
                 ->getPaymentPart();
 
             if ($this->regenerateReferenceFiles) {
-               file_put_contents($file, $output);
+                file_put_contents($file, $output);
             }
 
             $this->assertSame(

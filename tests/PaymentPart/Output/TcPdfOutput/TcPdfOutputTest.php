@@ -1,6 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
+<<<<<<< HEAD
 namespace Sprain\Tests\SwissQrBill\PaymentPart\Output\MarkupOutput;
+=======
+namespace Sprain\Tests\SwissQrBill\PaymentPart\Output\TcPdfOutput;
+>>>>>>> upstream/master
 
 use PHPUnit\Framework\TestCase;
 use Sprain\SwissQrBill\PaymentPart\Output\TcPdfOutput\TcPdfOutput;
@@ -8,14 +12,14 @@ use Sprain\SwissQrBill\QrBill;
 use Sprain\SwissQrBill\QrCode\QrCode;
 use Sprain\Tests\SwissQrBill\TestQrBillCreatorTrait;
 
-class TcPdfOutputTest extends TestCase
+final class TcPdfOutputTest extends TestCase
 {
     use TestQrBillCreatorTrait;
 
     /**
      * @dataProvider validQrBillsProvider
      */
-    public function testValidQrBills(string $name, QrBill $qrBill)
+    public function testValidQrBills(string $name, QrBill $qrBill): void
     {
         $variations = [
             [
@@ -28,6 +32,7 @@ class TcPdfOutputTest extends TestCase
                 'format' => QrCode::FILE_FORMAT_SVG,
                 'file' => __DIR__ . '/../../../TestData/TcPdfOutput/' . $name . '.svg.print.pdf'
             ],
+            /* PNGs do not create the same output in all environments
             [
                 'printable' => false,
                 'format' => QrCode::FILE_FORMAT_PNG,
@@ -38,6 +43,7 @@ class TcPdfOutputTest extends TestCase
                 'format' => QrCode::FILE_FORMAT_PNG,
                 'file' => __DIR__ . '/../../../TestData/TcPdfOutput/' . $name . '.png.print.pdf'
             ]
+            */
         ];
 
         foreach ($variations as $variation) {

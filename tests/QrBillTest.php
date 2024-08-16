@@ -1,13 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\Tests\SwissQrBill;
 
 use PHPUnit\Framework\TestCase;
 use Sprain\SwissQrBill\DataGroup\Element\AlternativeScheme;
+use Sprain\SwissQrBill\Exception\InvalidQrBillDataException;
 use Sprain\SwissQrBill\QrBill;
 use Zxing\QrReader;
 
-class QrBillTest extends TestCase
+final class QrBillTest extends TestCase
 {
     use TestQrBillCreatorTrait;
 
@@ -24,7 +25,7 @@ class QrBillTest extends TestCase
             file_put_contents($textFile, $qrBill->getQrCode()->getText());
         }
 
-        $this->assertSame(
+        $this->assertEquals(
             file_get_contents($textFile),
             $qrBill->getQrCode()->getText()
         );
@@ -41,26 +42,14 @@ class QrBillTest extends TestCase
         ]);
 
         $qrBill->setAlternativeSchemes([
-            AlternativeScheme::create('foo'),
-            AlternativeScheme::create('foo')
+            AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'),
+            AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9')
         ]);
 
         $this->assertSame(
             (new QrReader(__DIR__ . '/TestData/QrCodes/qr-alternative-schemes.png'))->text(),
             $qrBill->getQrCode()->getText()
         );
-    }
-
-    public function testHeaderIsRequired()
-    {
-        $qrBill = $this->createQrBill([
-            'creditorInformationQrIban',
-            'creditor',
-            'paymentAmountInformation',
-            'paymentReferenceQr'
-        ]);
-
-        $this->assertSame(1, $qrBill->getViolations()->count());
     }
 
     public function testHeaderMustBeValid()
@@ -225,8 +214,8 @@ class QrBillTest extends TestCase
             'paymentReferenceQr',
         ]);
 
-        $qrBill->addAlternativeScheme(AlternativeScheme::create('foo'));
-        $qrBill->addAlternativeScheme((new AlternativeScheme()));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create(''));
 
         $this->assertFalse($qrBill->isValid());
     }
@@ -241,18 +230,56 @@ class QrBillTest extends TestCase
             'paymentReferenceQr'
         ]);
 
-        $qrBill->addAlternativeScheme(AlternativeScheme::create('foo'));
-        $qrBill->addAlternativeScheme(AlternativeScheme::create('foo'));
-        $qrBill->addAlternativeScheme(AlternativeScheme::create('foo'));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'));
 
         $this->assertFalse($qrBill->isValid());
     }
 
-    /**
-     * @expectedException \Sprain\SwissQrBill\Exception\InvalidQrBillDataException
-     */
+    public function testItReplacesUnsupportedCharacters()
+    {
+        $qrBill = $this->createQrBill([
+            'header',
+            'creditorInformationQrIban',
+            'creditorWithUnsupportedCharacters',
+            'paymentAmountInformation',
+            'paymentReferenceQr',
+        ]);
+
+        $this->assertStringContainsString(
+            'Team We are the Champions!',
+            $qrBill->getQrCode()->getText()
+        );
+    }
+
+    public function testItConsidersReplacementCharacters()
+    {
+        $qrBill = $this->createQrBill([
+            'header',
+            'creditorInformationQrIban',
+            'creditorWithUnsupportedCharacters',
+            'paymentAmountInformation',
+            'paymentReferenceQr',
+        ]);
+
+        $unsupportedCharacterReplacements = [
+            '«' => '"',
+            '»' => '"',
+        ];
+
+        $qrBill->setUnsupportedCharacterReplacements($unsupportedCharacterReplacements);
+
+        $this->assertStringContainsString(
+            'Team "We are the Champions!"',
+            $qrBill->getQrCode()->getText()
+        );
+    }
+
     public function testCatchInvalidData()
     {
+        $this->expectException(InvalidQrBillDataException::class);
+
         $qrBill = QrBill::create();
         $qrBill->getQrCode();
     }

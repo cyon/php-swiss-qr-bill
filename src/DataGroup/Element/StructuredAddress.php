@@ -1,63 +1,69 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill\DataGroup\Element;
 
 use Sprain\SwissQrBill\DataGroup\AddressInterface;
+use Sprain\SwissQrBill\DataGroup\Element\Abstracts\Address;
 use Sprain\SwissQrBill\DataGroup\QrCodeableInterface;
+use Sprain\SwissQrBill\String\StringModifier;
 use Sprain\SwissQrBill\Validator\SelfValidatableInterface;
 use Sprain\SwissQrBill\Validator\SelfValidatableTrait;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Mapping\ClassMetadata;
 
-class StructuredAddress implements AddressInterface, SelfValidatableInterface, QrCodeableInterface
+final class StructuredAddress extends Address implements AddressInterface, SelfValidatableInterface, QrCodeableInterface
 {
     use SelfValidatableTrait;
 
-    const ADDRESS_TYPE = 'S';
+    public const ADDRESS_TYPE = 'S';
 
     /**
      * Name or company
-     *
-     * @var string
      */
-    private $name;
+    private string $name;
 
     /**
      * Street / P.O. box
      *
      * May not include building or house number.
-     *
-     * @var string
      */
-    private $street;
+    private ?string $street;
 
     /**
      * Building number
-     *
-     * @var string
      */
-    private $buildingNumber;
+    private ?string $buildingNumber;
 
     /**
-     * Postal code without county code
-     *
-     * @var string
+     * Postal code without country code
      */
-    private $postalCode;
+    private string $postalCode;
 
     /**
      * City
-     *
-     * @var string
      */
-    private $city;
+    private string $city;
 
     /**
      * Country (ISO 3166-1 alpha-2)
-     *
-     * @var string
      */
-    private $country;
+    private string $country;
+
+    private function __construct(
+        string $name,
+        ?string $street,
+        ?string $buildingNumber,
+        string $postalCode,
+        string $city,
+        string $country
+    ) {
+        $this->name = self::normalizeString($name);
+        $this->street = self::normalizeString($street);
+        $this->buildingNumber = self::normalizeString($buildingNumber);
+        $this->postalCode = self::normalizeString($postalCode);
+        $this->city = self::normalizeString($city);
+        $this->country = strtoupper(self::normalizeString($country));
+    }
 
     public static function createWithoutStreet(
         string $name,
@@ -65,13 +71,14 @@ class StructuredAddress implements AddressInterface, SelfValidatableInterface, Q
         string $city,
         string $country
     ): self {
-        $structuredAddress = new self();
-        $structuredAddress->name = $name;
-        $structuredAddress->postalCode = $postalCode;
-        $structuredAddress->city = $city;
-        $structuredAddress->country = strtoupper($country);
-
-        return $structuredAddress;
+        return new self(
+            $name,
+            null,
+            null,
+            $postalCode,
+            $city,
+            $country
+        );
     }
 
     public static function createWithStreet(
@@ -82,18 +89,17 @@ class StructuredAddress implements AddressInterface, SelfValidatableInterface, Q
         string $city,
         string $country
     ): self {
-        $structuredAddress = new self();
-        $structuredAddress->name = $name;
-        $structuredAddress->street = $street;
-        $structuredAddress->buildingNumber = $buildingNumber;
-        $structuredAddress->postalCode = $postalCode;
-        $structuredAddress->city = $city;
-        $structuredAddress->country = strtoupper($country);
-
-        return $structuredAddress;
+        return new self(
+            $name,
+            $street,
+            $buildingNumber,
+            $postalCode,
+            $city,
+            $country
+        );
     }
 
-    public function getName(): ?string
+    public function getName(): string
     {
         return $this->name;
     }
@@ -108,40 +114,44 @@ class StructuredAddress implements AddressInterface, SelfValidatableInterface, Q
         return $this->buildingNumber;
     }
 
-    public function getPostalCode(): ?string
+    public function getPostalCode(): string
     {
         return $this->postalCode;
     }
 
-    public function getCity(): ?string
+    public function getCity(): string
     {
         return $this->city;
     }
 
-    public function getCountry(): ?string
+    public function getCountry(): string
     {
         return $this->country;
     }
 
-    public function getFullAddress(): string
+    public function getFullAddress(bool $forReceipt = false): string
     {
-        $address = $this->getName();
+        $lines[1] = $this->getName();
 
         if ($this->getStreet()) {
-            $address .= "\n" . $this->getStreet();
+            $lines[2] = $this->getStreet();
 
             if ($this->getBuildingNumber()) {
-                $address .= " " . $this->getBuildingNumber();
+                $lines[2] .= ' ' . $this->getBuildingNumber();
             }
         }
 
-        if (in_array($this->getCountry(), ['CH', 'FL'])) {
-            $address .= sprintf("\n%s %s", $this->getPostalCode(), $this->getCity());
+        if ('CH' === $this->getCountry()) {
+            $lines[3] = sprintf("%s %s", $this->getPostalCode(), $this->getCity());
         } else {
-            $address .= sprintf("\n%s-%s %s", $this->getCountry(), $this->getPostalCode(), $this->getCity());
+            $lines[3] = sprintf("%s-%s %s", $this->getCountry(), $this->getPostalCode(), $this->getCity());
         }
 
-        return $address;
+        if ($forReceipt) {
+            $lines = self::clearMultilines($lines);
+        }
+
+        return implode("\n", $lines);
     }
 
     public function getQrCodeData(): array

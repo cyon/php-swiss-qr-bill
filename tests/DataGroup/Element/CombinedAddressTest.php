@@ -1,16 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\Tests\SwissQrBill\DataGroup\Element;
 
 use PHPUnit\Framework\TestCase;
 use Sprain\SwissQrBill\DataGroup\Element\CombinedAddress;
 
-class CombinedAddressTest extends TestCase
+final class CombinedAddressTest extends TestCase
 {
     /**
      * @dataProvider nameProvider
      */
-    public function testName($numberOfValidations, $value)
+    public function testName($numberOfValidations, $value): void
     {
         $address = CombinedAddress::create(
             $value,
@@ -22,7 +22,7 @@ class CombinedAddressTest extends TestCase
         $this->assertSame($numberOfValidations, $address->getViolations()->count());
     }
 
-    public function nameProvider()
+    public function nameProvider(): array
     {
         return [
             [0, 'A'],
@@ -38,7 +38,7 @@ class CombinedAddressTest extends TestCase
     /**
      * @dataProvider addressLine1Provider
      */
-    public function testAddressLine1($numberOfValidations, $value)
+    public function testAddressLine1(int $numberOfValidations, ?string $value): void
     {
         $address = CombinedAddress::create(
             'Thomas Mustermann',
@@ -50,7 +50,7 @@ class CombinedAddressTest extends TestCase
         $this->assertSame($numberOfValidations, $address->getViolations()->count());
     }
 
-    public function addressLine1Provider()
+    public function addressLine1Provider(): array
     {
         return [
             [0, null],
@@ -66,7 +66,7 @@ class CombinedAddressTest extends TestCase
     /**
      * @dataProvider addressLine2Provider
      */
-    public function testAddressLine2($numberOfValidations, $value)
+    public function testAddressLine2(int $numberOfValidations, string $value): void
     {
         $address = CombinedAddress::create(
             'Thomas Mustermann',
@@ -78,7 +78,7 @@ class CombinedAddressTest extends TestCase
         $this->assertSame($numberOfValidations, $address->getViolations()->count());
     }
 
-    public function addressLine2Provider()
+    public function addressLine2Provider(): array
     {
         return [
             [0, 'A'],
@@ -90,7 +90,7 @@ class CombinedAddressTest extends TestCase
         ];
     }
 
-    public function testQrCodeData()
+    public function testQrCodeData(): void
     {
         $address = CombinedAddress::create(
             'Thomas Mustermann',
@@ -115,7 +115,7 @@ class CombinedAddressTest extends TestCase
     /**
      * @dataProvider countryProvider
      */
-    public function testCountry($numberOfValidations, $value)
+    public function testCountry(int $numberOfValidations, string $value): void
     {
         $address = CombinedAddress::create(
             'Thomas Mustermann',
@@ -127,7 +127,7 @@ class CombinedAddressTest extends TestCase
         $this->assertSame($numberOfValidations, $address->getViolations()->count());
     }
 
-    public function countryProvider()
+    public function countryProvider(): array
     {
         return [
             [0, 'CH'],
@@ -146,12 +146,12 @@ class CombinedAddressTest extends TestCase
     /**
      * @dataProvider addressProvider
      */
-    public function testFullAddressString(CombinedAddress $address, $expected)
+    public function testFullAddressString(CombinedAddress $address, string $expected): void
     {
         $this->assertSame($expected, $address->getFullAddress());
     }
 
-    public function addressProvider()
+    public function addressProvider(): array
     {
         return [
             [
@@ -177,9 +177,9 @@ class CombinedAddressTest extends TestCase
                     'Thomas Mustermann',
                     'Musterweg 22a',
                     '9490 Vaduz',
-                    'FL'
+                    'LI'
                 ),
-                "Thomas Mustermann\nMusterweg 22a\n9490 Vaduz"
+                "Thomas Mustermann\nMusterweg 22a\nLI-9490 Vaduz"
             ],
             [
                 CombinedAddress::create(
@@ -189,6 +189,128 @@ class CombinedAddressTest extends TestCase
                     'DE'
                 ),
                 "Thomas Mustermann\nMusterweg 22a\nDE-80331 München"
+            ],
+            [
+                CombinedAddress::create(
+                    "Thomas\nMustermann",
+                    "Musterweg\t22a",
+                    "80331\r München",
+                    ' DE '
+                ),
+                "Thomas Mustermann\nMusterweg 22a\nDE-80331 München"
+            ],
+            [
+            CombinedAddress::create(
+                'Heaps of Characters International Trading Company of Switzerland GmbH',
+                'Street of the Mighty Long Names Where Heroes Live and Villans Die 75',
+                '1000 Lausanne au bord du lac, où le soleil brille encore la nuit',
+                'CH'
+            ),
+                "Heaps of Characters International Trading Company of Switzerland GmbH\nStreet of the Mighty Long Names Where Heroes Live and Villans Die 75\n1000 Lausanne au bord du lac, où le soleil brille encore la nuit"
+            ],
+            [
+                CombinedAddress::create(
+                    'Heaps of Characters International Trading Company of Switzerland GmbH',
+                    'Rue examplaire 22a',
+                    '1000 Lausanne',
+                    'CH'
+                ),
+                "Heaps of Characters International Trading Company of Switzerland GmbH\nRue examplaire 22a\n1000 Lausanne"
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider addressProviderReceipt
+     */
+    public function testFullAddressStringForReceipt(CombinedAddress $address, string $expected): void
+    {
+        $this->assertSame($expected, $address->getFullAddress(true));
+    }
+
+    public function addressProviderReceipt(): array
+    {
+        return [
+            [
+                CombinedAddress::create(
+                    'Thomas Mustermann',
+                    'Musterweg 22a',
+                    '1000 Lausanne',
+                    'CH'
+                ),
+                "Thomas Mustermann\nMusterweg 22a\n1000 Lausanne"
+            ],
+            [
+                CombinedAddress::create(
+                    'Thomas Mustermann',
+                    null,
+                    '1000 Lausanne',
+                    'CH'
+                ),
+                "Thomas Mustermann\n1000 Lausanne"
+            ],
+            [
+                CombinedAddress::create(
+                    'Thomas Mustermann',
+                    'Musterweg 22a',
+                    '9490 Vaduz',
+                    'LI'
+                ),
+                "Thomas Mustermann\nMusterweg 22a\nLI-9490 Vaduz"
+            ],
+            [
+                CombinedAddress::create(
+                    'Thomas Mustermann',
+                    'Musterweg 22a',
+                    '80331 München',
+                    'DE'
+                ),
+                "Thomas Mustermann\nMusterweg 22a\nDE-80331 München"
+            ],
+            [
+                CombinedAddress::create(
+                    "Thomas\nMustermann",
+                    "Musterweg\t22a",
+                    "80331\r München",
+                    ' DE '
+                ),
+                "Thomas Mustermann\nMusterweg 22a\nDE-80331 München"
+            ],
+            [
+                CombinedAddress::create(
+                    "Thomas\nMustermann",
+                    "Musterweg\t22a",
+                    "80331\r München",
+                    ' DE '
+                ),
+                "Thomas Mustermann\nMusterweg 22a\nDE-80331 München"
+            ],
+            [
+                CombinedAddress::create(
+                    "Thomas\nMustermann",
+                    "Musterweg\t22a",
+                    "80331\r München",
+                    ' DE '
+                ),
+                "Thomas Mustermann\nMusterweg 22a\nDE-80331 München"
+            ],
+            [
+                CombinedAddress::create(
+                    'Heaps of Characters International Trading Company of Switzerland GmbH',
+                    'Street of the Mighty Long Names Where Heroes Live and Villans Die 75',
+                    '1000 Lausanne au bord du lac, où le soleil brille encore la nuit',
+                    'CH'
+                ),
+                "Heaps of Characters International Trading Company of Switzerland GmbH"
+            ],
+            [
+                CombinedAddress::create(
+                    'Heaps of Characters International Trading Company of Switzerland GmbH',
+                    'Rue examplaire 22a',
+                    '1000 Lausanne',
+                    'CH'
+                ),
+                "Heaps of Characters International Trading Company of Switzerland GmbH\n1000 Lausanne"
             ],
         ];
     }

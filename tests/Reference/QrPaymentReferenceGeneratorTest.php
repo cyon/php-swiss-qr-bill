@@ -1,18 +1,19 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\Tests\SwissQrBill\Reference;
 
 use PHPUnit\Framework\TestCase;
 use Sprain\SwissQrBill\Reference\QrPaymentReferenceGenerator;
+use Sprain\SwissQrBill\Validator\Exception\InvalidQrPaymentReferenceException;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class QrPaymentReferenceGeneratorTest extends TestCase
+final class QrPaymentReferenceGeneratorTest extends TestCase
 {
     /** @var  ValidatorInterface */
     private $validator;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->validator = Validation::createValidatorBuilder()
             ->addMethodMapping('loadValidatorMetadata')
@@ -22,7 +23,20 @@ class QrPaymentReferenceGeneratorTest extends TestCase
     /**
      * @dataProvider qrPaymentReferenceProvider
      */
-    public function testQrPaymentReference($customerIdentification, $referenceNumber, $expectedResult)
+    public function testMakesResultsViaConstructor(?string $customerIdentification, string $referenceNumber, string $expectedResult): void
+    {
+        $qrReference = new QrPaymentReferenceGenerator(
+            $customerIdentification,
+            $referenceNumber
+        );
+
+        $this->assertSame($expectedResult, $qrReference->doGenerate());
+    }
+
+    /**
+     * @dataProvider qrPaymentReferenceProvider
+     */
+    public function testMakesResultsViaFacade(?string $customerIdentification, string $referenceNumber, string $expectedResult): void
     {
         $qrReference = QrPaymentReferenceGenerator::generate(
             $customerIdentification,
@@ -32,7 +46,7 @@ class QrPaymentReferenceGeneratorTest extends TestCase
         $this->assertSame($expectedResult, $qrReference);
     }
 
-    public function qrPaymentReferenceProvider()
+    public function qrPaymentReferenceProvider(): array
     {
         return [
             // Realistic real-life examples
@@ -46,9 +60,6 @@ class QrPaymentReferenceGeneratorTest extends TestCase
             ['', '11223344', '000000000000000000112233442'],
             [null, '11223344', '000000000000000000112233442'],
 
-            // Handle it as numerics as well
-            [310014, 18310019779911119, '310014000183100197799111196'],
-
             // Correct handling of whitespace
             [' 310 014 ', ' 1831001 9779911119 ', '310014000183100197799111196'],
         ];
@@ -56,17 +67,18 @@ class QrPaymentReferenceGeneratorTest extends TestCase
 
     /**
      * @dataProvider invalidQrPaymentReferenceProvider
-     * @expectedException Sprain\SwissQrBill\Validator\Exception\InvalidQrPaymentReferenceException
      */
-    public function testInvalidQrPaymentReference($customerIdentification, $referenceNumber)
+    public function testInvalidQrPaymentReference(?string $customerIdentification, string $referenceNumber): void
     {
+        $this->expectException(InvalidQrPaymentReferenceException::class);
+
         QrPaymentReferenceGenerator::generate(
             $customerIdentification,
             $referenceNumber
         );
     }
 
-    public function invalidQrPaymentReferenceProvider()
+    public function invalidQrPaymentReferenceProvider(): array
     {
         return [
             ['1234', '12345678901234567890123'], // too long in total
@@ -78,17 +90,18 @@ class QrPaymentReferenceGeneratorTest extends TestCase
 
     /**
      * @dataProvider invalidCustomerIdentificationNumberProvider
-     * @expectedException Sprain\SwissQrBill\Validator\Exception\InvalidQrPaymentReferenceException
      */
-    public function testInvalidCustomerIdentificationNumber($value)
+    public function testInvalidCustomerIdentificationNumber(string $value): void
     {
+        $this->expectException(InvalidQrPaymentReferenceException::class);
+
         QrPaymentReferenceGenerator::generate(
             $value,
             '18310019779911119'
         );
     }
 
-    public function invalidCustomerIdentificationNumberProvider()
+    public function invalidCustomerIdentificationNumberProvider(): array
     {
         return [
             ['123456789012'], // too long
@@ -99,17 +112,18 @@ class QrPaymentReferenceGeneratorTest extends TestCase
 
     /**
      * @dataProvider invalidReferenceNumberProvider
-     * @expectedException Sprain\SwissQrBill\Validator\Exception\InvalidQrPaymentReferenceException
      */
-    public function testInvalidReferenceNumber($value)
+    public function testInvalidReferenceNumber(string $value): void
     {
+        $this->expectException(InvalidQrPaymentReferenceException::class);
+        
         QrPaymentReferenceGenerator::generate(
             '123456',
             $value
         );
     }
 
-    public function invalidReferenceNumberProvider()
+    public function invalidReferenceNumberProvider(): array
     {
         return [
             ['1234567890123456789A'],  // non-digits

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template;
 
@@ -7,13 +7,13 @@ class PaymentPartTemplate
     public const TEMPLATE = <<<EOT
 <style>
 #qr-bill {
-	box-sizing: border-box;
-	border-collapse: collapse;
-	color: #000;
+    box-sizing: border-box;
+    border-collapse: collapse;
+    color: #000 !important;
 }
 
 #qr-bill * {
-	font-family: Arial, Frutiger, Helvetica, "Liberation Sans";
+    font-family: Arial, Frutiger, Helvetica, "Liberation Sans"  !important;
 }
 
 #qr-bill img.qr-bill-placeholder {
@@ -22,7 +22,7 @@ class PaymentPartTemplate
 
 #qr-bill-separate-info {
     text-align: center;
-    font-size: 8pt;
+    font-size: 8pt !important;
     line-height: 9pt;
 	height: 5mm;
 	vertical-align: middle;
@@ -30,64 +30,76 @@ class PaymentPartTemplate
 
 /* h1 / h2 */
 #qr-bill h1 {
-	font-size: 11pt;
-	font-weight: bold;
-	margin: 0;
-	padding: 0;
-	height: 7mm;
+    font-size: 11pt !important;
+    line-height: 13pt !important;
+    font-weight: bold !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 7mm !important;
+    color: #000 !important;
 }
 
 #qr-bill h2 {
-	font-weight: bold;
-	margin: 0;
-	padding: 0;
+    font-weight: bold !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #000 !important;
 }
 
 #qr-bill-payment-part h2 {
-	font-size: 8pt;
-	line-height: 11pt;	
-    margin-top: 11pt;
+    font-size: 8pt !important;
+    line-height: 11pt !important;    
+    margin-top: 11pt !important;
+    color: #000 !important;
 }
 
 #qr-bill-receipt h2 {
-	font-size: 6pt;
-	line-height: 8pt;	
-    margin-top: 8pt;
+    font-size: 6pt !important;
+    line-height: 8pt !important;    
+    margin-top: 8pt !important;
+    color: #000 !important;
 }
 
 #qr-bill-payment-part h2:first-child,
 #qr-bill-receipt h2:first-child {
-	margin-top: 0;
+    margin-top: 0 !important;
+    color: #000 !important;
 }
 
 /* p */
 #qr-bill p {
-	font-weight: normal;
-	margin: 0;
-	padding: 0;
+    font-weight: normal !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #000 !important;
 }
 
 #qr-bill-receipt p {
-	font-size: 8pt;
-	line-height: 9pt;
+    font-size: 8pt !important;
+    line-height: 9pt !important;
+    color: #000 !important;
 }
 
 #qr-bill-payment-part p {
-	font-size: 10pt;
-	line-height: 11pt;
+    font-size: 10pt !important;
+    line-height: 11pt !important;
+    color: #000 !important;
 }
 
 #qr-bill-amount-area-receipt p{
-    line-height: 11pt;
+    line-height: 11pt !important;
+    color: #000 !important;
 }
 
 #qr-bill-amount-area p{
-    line-height: 13pt;
+    line-height: 13pt !important;
+    color: #000 !important;
 }
 
 #qr-bill-payment-further-information p {
-    font-size: 7pt;
-    line-height: 9pt;
+    font-size: 7pt !important;
+    line-height: 9pt !important;
+    color: #000 !important;
 }
 
 /* Receipt */
@@ -107,8 +119,8 @@ class PaymentPartTemplate
 }
 
 #qr-bill-currency-receipt {
-	float: left;
-	margin-right: 2mm;
+    float: left;
+    margin-right: 2mm;
 }
 
 #qr-bill-acceptance-point {
@@ -126,10 +138,10 @@ class PaymentPartTemplate
 #qr-bill-payment-part {
     box-sizing: border-box;
     width: 148mm;
-	padding-left: 5mm;
-	padding-top: 5mm;
-	padding-right: 5mm;
-	vertical-align: top;
+    padding-left: 5mm;
+    padding-top: 5mm;
+    padding-right: 5mm;
+    vertical-align: top;
 }
 
 #qr-bill-payment-part-left {
@@ -139,10 +151,10 @@ class PaymentPartTemplate
 }
 
 #qr-bill-swiss-qr-image {
-	width: 46mm;
-	height: 46mm;
-	margin: 5mm;
-	margin-left: 0;
+    width: 46mm;
+    height: 46mm;
+    margin: 5mm;
+    margin-left: 0;
 }
 
 #qr-bill-amount-area {
@@ -150,8 +162,8 @@ class PaymentPartTemplate
 }
 
 #qr-bill-currency {
-	float: left;
-	margin-right: 2mm;
+    float: left;
+    margin-right: 2mm;
 }
 
 #qr-bill-payment-further-information {
@@ -174,10 +186,10 @@ class PaymentPartTemplate
     <tr id="qr-bill-separate-info">
         <td colspan="99"><span id="qr-bill-separate-info-text">{{ text.separate }}</span></td>
     </tr>
-	<tr>
-	    <td id="qr-bill-receipt">
-	        <h1>{{ text.receipt }}</h1>
-	        <div id="qr-bill-information-receipt">
+    <tr>
+        <td id="qr-bill-receipt">
+            <h1>{{ text.receipt }}</h1>
+            <div id="qr-bill-information-receipt">
                 {{ information-content-receipt }}
             </div>
             <div id="qr-bill-amount-area-receipt">
@@ -205,17 +217,17 @@ class PaymentPartTemplate
                         {{ amount-content }}
                     </div>
                 </div>
-			</div>
-			<div id="qr-bill-payment-part-right">
+            </div>
+            <div id="qr-bill-payment-part-right">
                 <div id="qr-bill-information">
                     {{ information-content }}
                 </div>
-			</div>
-			<div id="qr-bill-payment-further-information">
-			    {{ further-information-content }}
+            </div>
+            <div id="qr-bill-payment-further-information">
+                {{ further-information-content }}
             </div>
         </td>
-	</tr>
+    </tr>
 </table>
 EOT;
 }

@@ -1,27 +1,22 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill\PaymentPart\Output;
 
 use Sprain\SwissQrBill\DataGroup\Element\PaymentReference;
+use Sprain\SwissQrBill\PaymentPart\Output\Element\FurtherInformation;
+use Sprain\SwissQrBill\PaymentPart\Output\Element\OutputElementInterface;
 use Sprain\SwissQrBill\PaymentPart\Output\Element\Placeholder;
 use Sprain\SwissQrBill\PaymentPart\Output\Element\Text;
 use Sprain\SwissQrBill\PaymentPart\Output\Element\Title;
 use Sprain\SwissQrBill\QrBill;
 use Sprain\SwissQrBill\QrCode\QrCode;
 
-abstract class AbstractOutput
+abstract class AbstractOutput implements OutputInterface
 {
-    /** @var QrBill */
-    protected $qrBill;
-
-    /** @var  string */
-    protected $language;
-
-    /** @var bool */
-    protected $printable;
-
-    /** @var string */
-    protected $qrCodeImageFormat;
+    protected QrBill $qrBill;
+    protected string $language;
+    protected bool $printable;
+    protected string $qrCodeImageFormat;
 
     public function __construct(QrBill $qrBill, string $language)
     {
@@ -41,7 +36,7 @@ abstract class AbstractOutput
         return $this->language;
     }
 
-    public function setPrintable(bool $printable): self
+    public function setPrintable(bool $printable): static
     {
         $this->printable = $printable;
 
@@ -53,7 +48,7 @@ abstract class AbstractOutput
         return $this->printable;
     }
 
-    public function setQrCodeImageFormat(string $fileExtension): self
+    public function setQrCodeImageFormat(string $fileExtension): static
     {
         $this->qrCodeImageFormat = $fileExtension;
 
@@ -65,6 +60,9 @@ abstract class AbstractOutput
         return $this->qrCodeImageFormat;
     }
 
+    /**
+     * @return list<Title|Text|Placeholder>
+     */
     protected function getInformationElements(): array
     {
         $informationElements = [];
@@ -93,12 +91,15 @@ abstract class AbstractOutput
         return $informationElements;
     }
 
+    /**
+     * @return list<Title|Text|Placeholder>
+     */
     protected function getInformationElementsOfReceipt(): array
     {
         $informationElements = [];
 
         $informationElements[] = Title::create('text.creditor');
-        $informationElements[] = Text::create($this->qrBill->getCreditorInformation()->getFormattedIban() . "\n" . $this->qrBill->getCreditor()->getFullAddress());
+        $informationElements[] = Text::create($this->qrBill->getCreditorInformation()->getFormattedIban() . "\n" . $this->qrBill->getCreditor()->getFullAddress(true));
 
         if ($this->qrBill->getPaymentReference()->getType() !== PaymentReference::TYPE_NON) {
             $informationElements[] = Title::create('text.reference');
@@ -107,7 +108,7 @@ abstract class AbstractOutput
 
         if ($this->qrBill->getUltimateDebtor()) {
             $informationElements[] = Title::create('text.payableBy');
-            $informationElements[] = Text::create($this->qrBill->getUltimateDebtor()->getFullAddress());
+            $informationElements[] = Text::create($this->qrBill->getUltimateDebtor()->getFullAddress(true));
         } else {
             $informationElements[] = Title::create('text.payableByName');
             $informationElements[] = Placeholder::create(Placeholder::PLACEHOLDER_TYPE_PAYABLE_BY_RECEIPT);
@@ -116,6 +117,9 @@ abstract class AbstractOutput
         return $informationElements;
     }
 
+    /**
+     * @return list<Title|Text>
+     */
     protected function getCurrencyElements(): array
     {
         $currencyElements = [];
@@ -126,6 +130,9 @@ abstract class AbstractOutput
         return $currencyElements;
     }
 
+    /**
+     * @return list<Title|Text|Placeholder>
+     */
     protected function getAmountElements(): array
     {
         $amountElements = [];
@@ -141,6 +148,9 @@ abstract class AbstractOutput
         return $amountElements;
     }
 
+    /**
+     * @return list<Title|Text|Placeholder>
+     */
     protected function getAmountElementsReceipt(): array
     {
         $amountElements = [];
@@ -156,6 +166,9 @@ abstract class AbstractOutput
         return $amountElements;
     }
 
+    /**
+     * @return list<FurtherInformation>
+     */
     protected function getFurtherInformationElements(): array
     {
         $furtherInformationElements = [];
@@ -164,16 +177,13 @@ abstract class AbstractOutput
         foreach ($this->qrBill->getAlternativeSchemes() as $alternativeScheme) {
             $furtherInformationLines[] = $alternativeScheme->getParameter();
         }
-        $furtherInformationElements[] = Text::create(implode("\n", $furtherInformationLines));
+        $furtherInformationElements[] = FurtherInformation::create(implode("\n", $furtherInformationLines));
 
         return $furtherInformationElements;
     }
 
     protected function getQrCode(): QrCode
     {
-        $qrCode = $this->qrBill->getQrCode();
-        $qrCode->setWriterByExtension($this->getQrCodeImageFormat());
-
-        return $qrCode;
+        return $this->qrBill->getQrCode($this->getQrCodeImageFormat());
     }
 }

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 use Sprain\SwissQrBill as QrBill;
 
@@ -17,12 +17,14 @@ $qrBill->setCreditor(
         'Rue du Lac 1268',
         '2501 Biel',
         'CH'
-    ));
+    )
+);
 
 $qrBill->setCreditorInformation(
     QrBill\DataGroup\Element\CreditorInformation::create(
         'CH9300762011623852957' // With SCOR, this is a classic iban. QR-IBANs will not be valid here.
-    ));
+    )
+);
 
 // Add debtor information
 // Who has to pay the invoice? This part is optional.
@@ -37,7 +39,8 @@ $qrBill->setUltimateDebtor(
         '9400',
         'Rorschach',
         'CH'
-    ));
+    )
+);
 
 // Add payment amount information
 // What amount is to be paid?
@@ -45,15 +48,17 @@ $qrBill->setPaymentAmountInformation(
     QrBill\DataGroup\Element\PaymentAmountInformation::create(
         'CHF',
         2500.25
-    ));
+    )
+);
 
 // Add payment reference
 // This is what you will need to identify incoming payments.
 $qrBill->setPaymentReference(
     QrBill\DataGroup\Element\PaymentReference::create(
         QrBill\DataGroup\Element\PaymentReference::TYPE_SCOR,
-        'RF18539007547034'
-    ));
+        QrBill\Reference\RfCreditorReferenceGenerator::generate('I20200631')
+    )
+);
 
 // Optionally, add some human-readable information about what the bill is for.
 $qrBill->setAdditionalInformation(
@@ -69,10 +74,10 @@ try {
     $qrBill->getQrCode()->writeFile(__DIR__ . '/qr.png');
     $qrBill->getQrCode()->writeFile(__DIR__ . '/qr.svg');
 } catch (Exception $e) {
-	foreach($qrBill->getViolations() as $violation) {
-		print $violation->getMessage()."\n";
-	}
-	exit;
+    foreach ($qrBill->getViolations() as $violation) {
+        print $violation->getMessage()."\n";
+    }
+    exit;
 }
 
 // Next: Output full payment parts, depending on the format you want to use:

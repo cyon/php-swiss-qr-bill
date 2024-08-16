@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\Tests\SwissQrBill;
 
@@ -10,6 +10,7 @@ use Sprain\SwissQrBill\DataGroup\Element\CreditorInformation;
 use Sprain\SwissQrBill\DataGroup\Element\Header;
 use Sprain\SwissQrBill\DataGroup\Element\PaymentAmountInformation;
 use Sprain\SwissQrBill\DataGroup\Element\PaymentReference;
+use Sprain\SwissQrBill\PaymentPart\Translation\Translation;
 use Sprain\SwissQrBill\QrBill;
 
 trait TestQrBillCreatorTrait
@@ -47,13 +48,33 @@ trait TestQrBillCreatorTrait
                     'ultimateDebtor'
                 ])
             ],
+            ['qr-payment-information-without-amount-and-long-addresses',
+                $this->createQrBill([
+                    'header',
+                    'creditorInformationQrIban',
+                    'creditorLong',
+                    'paymentAmountInformationWithoutAmount',
+                    'paymentReferenceQr',
+                    'ultimateDebtorLong'
+                ])
+            ],
+            ['qr-payment-information-with-mediumlong-creditor-and-unknown-debtor',
+                $this->createQrBill([
+                    'header',
+                    'creditorInformationQrIban',
+                    'creditorMediumLong',
+                    'paymentAmountInformationWithoutAmount',
+                    'paymentReferenceQr'
+                ])
+            ],
             ['qr-payment-information-zero-amount',
                 $this->createQrBill([
                     'header',
                     'creditorInformationQrIban',
                     'creditor',
                     'paymentAmountInformationZeroAmount',
-                    'paymentReferenceQr'
+                    'paymentReferenceQr',
+                    'additionalInformationZeroPayment'
                 ])
             ],
             ['qr-payment-reference-scor',
@@ -123,8 +144,8 @@ trait TestQrBillCreatorTrait
             'paymentReferenceQr',
         ]);
 
-        $qrBill->addAlternativeScheme(AlternativeScheme::create('foo'));
-        $qrBill->addAlternativeScheme(AlternativeScheme::create('foo'));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'));
 
         return $qrBill;
     }
@@ -141,17 +162,17 @@ trait TestQrBillCreatorTrait
             'additionalInformation'
         ]);
 
-        $qrBill->addAlternativeScheme(AlternativeScheme::create('foo'));
-        $qrBill->addAlternativeScheme(AlternativeScheme::create('foo'));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'));
+        $qrBill->addAlternativeScheme(AlternativeScheme::create('CC/XRPL/10/bUuK6fwHtfZ3HGAgKvEV7Y5TzHEu8ChUj9'));
 
         return $qrBill;
     }
 
     public function createQrBill(array $elements)
     {
-        $qrBill = new QrBill();
+        $qrBill = QrBill::create();
 
-        foreach($elements as $element) {
+        foreach ($elements as $element) {
             $this->$element($qrBill);
         }
 
@@ -171,7 +192,7 @@ trait TestQrBillCreatorTrait
     public function invalidHeader(QrBill &$qrBill)
     {
         // INVALID EMPTY HEADER
-        $qrBill->setHeader(new Header());
+        $qrBill->setHeader(Header::create('', '', 5));
     }
 
     public function creditorInformationIban(QrBill &$qrBill)
@@ -195,6 +216,21 @@ trait TestQrBillCreatorTrait
     public function creditor(QrBill &$qrBill)
     {
         $qrBill->setCreditor($this->structuredAddress());
+    }
+
+    public function creditorWithUnsupportedCharacters(QrBill &$qrBill)
+    {
+        $qrBill->setCreditor($this->addressWithUnsupportedCharacters());
+    }
+
+    public function creditorMediumLong(QrBill &$qrBill)
+    {
+        $qrBill->setCreditor($this->mediumLongAddress());
+    }
+
+    public function creditorLong(QrBill &$qrBill)
+    {
+        $qrBill->setCreditor($this->longAddress());
     }
 
     public function invalidCreditor(QrBill &$qrBill)
@@ -273,13 +309,18 @@ trait TestQrBillCreatorTrait
         $qrBill->setUltimateDebtor($this->combinedAddress());
     }
 
+    public function ultimateDebtorLong(QrBill &$qrBill)
+    {
+        $qrBill->setUltimateDebtor($this->longAddress());
+    }
+
     public function internationalUltimateDebtor(QrBill &$qrBill)
     {
         $qrBill->setUltimateDebtor(CombinedAddress::create(
-        'Joachim Kraut',
-        'Ewigermeisterstrasse 20',
-        '80331 München',
-        'DE'
+            'Joachim Kraut',
+            'Ewigermeisterstrasse 20',
+            '80331 München',
+            'DE'
         ));
     }
 
@@ -297,7 +338,7 @@ trait TestQrBillCreatorTrait
 
     public function invalidAlternativeScheme(QrBill &$qrBill)
     {
-        $alternativeScheme = (new AlternativeScheme());
+        $alternativeScheme = (AlternativeScheme::create(''));
 
         $qrBill->addAlternativeScheme($alternativeScheme);
     }
@@ -305,6 +346,12 @@ trait TestQrBillCreatorTrait
     public function additionalInformation(QrBill &$qrBill)
     {
         $additionalInformation = AdditionalInformation::create("Invoice 1234568\nGardening work", 'Bill Information');
+        $qrBill->setAdditionalInformation($additionalInformation);
+    }
+
+    public function additionalInformationZeroPayment(QrBill &$qrBill)
+    {
+        $additionalInformation = AdditionalInformation::create(Translation::get('doNotUseForPayment', 'en'));
         $qrBill->setAdditionalInformation($additionalInformation);
     }
 
@@ -316,7 +363,7 @@ trait TestQrBillCreatorTrait
             '22a',
             '1000',
             'Lausanne',
-            'CH',''
+            'CH'
         );
     }
 
@@ -330,8 +377,43 @@ trait TestQrBillCreatorTrait
         );
     }
 
+    public function mediumLongAddress()
+    {
+        return CombinedAddress::create(
+            'Heaps of Characters International Trading Company of Switzerland GmbH',
+            'Rue examplaire 22a',
+            '1000 Lausanne',
+            'CH'
+        );
+    }
+
+    public function longAddress()
+    {
+        return CombinedAddress::create(
+            'Heaps of Characters International Trading Company of Switzerland GmbH',
+            'Street of the Mighty Long Names Where Heroes Live and Villans Die 75',
+            '1000 Lausanne au bord du lac, où le soleil brille encore la nuit',
+            'CH'
+        );
+    }
+
+    public function addressWithUnsupportedCharacters()
+    {
+        return CombinedAddress::create(
+            'Team «We are the Champions!»',
+            'Rue examplaire 22a',
+            '1000 Lausanne',
+            'CH'
+        );
+    }
+
     public function invalidAddress()
     {
-        return new CombinedAddress();
+        return CombinedAddress::create(
+            '',
+            '',
+            '',
+            ''
+        );
     }
 }

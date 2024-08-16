@@ -1,9 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput;
 
 use Sprain\SwissQrBill\PaymentPart\Output\AbstractMarkupOutput;
-use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\NewlineElementTemplate;
+use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\FurtherInformationElementTemplate;
 use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\PlaceholderElementTemplate;
 use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\PrintableBordersTemplate;
 use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\TextElementTemplate;
@@ -11,6 +11,7 @@ use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\PaymentPartTemplat
 use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\TitleElementReceiptTemplate;
 use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\TitleElementTemplate;
 use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\HideInPrintableTemplate;
+use Sprain\SwissQrBill\PaymentPart\Output\HtmlOutput\Template\NewlineElementTemplate;
 
 final class HtmlOutput extends AbstractMarkupOutput
 {
@@ -39,6 +40,11 @@ final class HtmlOutput extends AbstractMarkupOutput
         return TextElementTemplate::TEMPLATE;
     }
 
+    public function getFurtherInformationElementTemplate(): string
+    {
+        return FurtherInformationElementTemplate::TEMPLATE;
+    }
+    
     public function getTitleElementTemplate(): string
     {
         return TitleElementTemplate::TEMPLATE;
